@@ -3,8 +3,8 @@ import signal
 
 import hlt
 
-game = hlt.Game('Settler')
-logging.info('Starting my Settler bot!')
+game = hlt.Game('TomFaulknerBot')
+logging.info('Starting Tombot!')
 
 destination_by_ship_id = {}
 
@@ -102,7 +102,7 @@ def get_command_for_undocked_ship(game_map, ship):
                 destination_by_ship_id[ship.id] = planet
                 return command
 
-    # Next try to swarm an enemy owned planet
+    # Next swarm enemy planets
     for planet in get_owned_planets(planets):
 
         # Skip this planet if it's ours
@@ -110,42 +110,43 @@ def get_command_for_undocked_ship(game_map, ship):
             continue
 
         # Head towards it
-        docked_enemy_ships = planet.all_docked_ships()
-        for enemy_ship in docked_enemy_ships:
-            command = ship.navigate(
-                ship.closest_point_to(enemy_ship),
-                game_map,
-                speed=int(hlt.constants.MAX_SPEED),
-                ignore_ships=True
-            )
-            if command:
-                return command
+        command = ship.navigate(
+            ship.closest_point_to(planet, min_distance=-5),
+            game_map,
+            speed=int(hlt.constants.MAX_SPEED),
+            ignore_planets=False)
+        if command:
+            return command
 
 
 def _handler_timeout(signum, frame):
     raise TimeoutError
 
 
-while True:
-    command_queue = []
-    game_map = game.update_map()
-    ships = game_map.get_me().all_ships()
+try:
+    while True:
+        command_queue = []
+        game_map = game.update_map()
+        ships = game_map.get_me().all_ships()
 
-    # Prevent a timeout from happening after 1.8 seconds
-    signal.signal(signal.SIGALRM, _handler_timeout)
-    signal.setitimer(signal.ITIMER_REAL, 1.8)
-    try:
+        # Prevent a timeout from happening after 1.8 seconds
+        signal.signal(signal.SIGALRM, _handler_timeout)
+        signal.setitimer(signal.ITIMER_REAL, 1.8)
+        try:
 
-        # Loop over every undocked ship and try to give them something to do
-        for ship in get_undocked_ships(ships):
-            command = get_command_for_undocked_ship(game_map, ship)
-            if command:
-                command_queue.append(command)
+            # Loop over every undocked ship and try to give them something to do
+            for ship in get_undocked_ships(ships):
+                command = get_command_for_undocked_ship(game_map, ship)
+                if command:
+                    command_queue.append(command)
 
-    except TimeoutError:
-        pass
+        except TimeoutError:
+            pass
 
-    finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
 
-    game.send_command_queue(command_queue)
+        game.send_command_queue(command_queue)
+except Exception as e:
+    log.exception(e)
+
