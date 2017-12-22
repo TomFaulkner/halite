@@ -1,7 +1,7 @@
 halite
 ======
 
-My bot for [halite.io](https://halite.io/).
+[TomFaulkner at halite.io](https://halite.io/user/?user_id=5734).
 
 ---
 
